@@ -21,3 +21,14 @@
 .idea/
 *.tmproj
 .vscode/
+.git/
+.git/*
+main
+Dockerfile
+README.md
+*.go
+go.mod
+go.sum
+static/
+k8s/
+

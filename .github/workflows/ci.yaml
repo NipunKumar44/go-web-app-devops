@@ -20,6 +20,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
@@ -31,7 +37,7 @@ jobs:
 
       - name: Run Go vet
         run: go vet ./...
-            
+
       - name: Build Docker image
         run: docker build -t go-web-app:${{ github.sha }} .
 
@@ -44,22 +50,22 @@ jobs:
           ignore-unfixed: true
           vuln-type: 'os,library'
           severity: 'CRITICAL,HIGH'
-      
+
       - name: Log in to GitHub Container Registry
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}     
-      
-      - name: Push Docker image to GHCR
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push multi-platform image
         if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        run: |
-          IMAGE_NAME=$(echo "${{ github.repository }}" | tr '[:upper:]' '[:lower:]')
-
-          docker tag go-web-app:${{ github.sha }} ghcr.io/${IMAGE_NAME}:${{ github.sha }}
-          docker tag go-web-app:${{ github.sha }} ghcr.io/${IMAGE_NAME}:latest
-
-          docker push ghcr.io/${IMAGE_NAME}:${{ github.sha }}
-          docker push ghcr.io/${IMAGE_NAME}:latest
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: |
+            ghcr.io/${{ github.repository }}:${{ github.sha }}
+            ghcr.io/${{ github.repository }}:latest
